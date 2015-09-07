@@ -29,10 +29,10 @@ exports.load = function(room, socket) {
   if (projects.projects[room] && projects.projects[room].external_paths) {
     var project = projects.projects[room].external_paths;
     db.get(room, function(err, value) {
-      socket.emit('loading:end');
+       projects.projects[room].external_paths = value
+       socket.emit('project:load', value);
     });
-    socket.emit('loading:end'); // used for sending back a blank database in case we try to load from DB but no project exists
-  } else {
+   } else {
     loadError(socket);
   }
 }

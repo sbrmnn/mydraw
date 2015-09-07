@@ -75,13 +75,9 @@ app.get('/tests/frontend', function (req, res) {
 app.use("/static", express.static(__dirname + '/src/static'));
 
 
-
-
 // LISTEN FOR REQUESTS
 var io = socket.listen(server);
 io.sockets.setMaxListeners(0);
-
-console.log("Access Etherdraw at http://127.0.0.1:"+settings.port);
 
 // SOCKET IO
 io.sockets.on('connection', function (socket) {
@@ -93,6 +89,7 @@ io.sockets.on('connection', function (socket) {
   // EVENT: User stops drawing something
   // Having room as a parameter is not good for secure rooms
   socket.on('draw:progress', function (room, start_x, start_y, end_x, end_y) {
+    console.log(socket);
     if (!projects.projects[room] || !projects.projects[room].external_paths) {
       loadError(socket);
       return;
@@ -177,6 +174,7 @@ function subscribe(socket, roomInput) {
     // object but that just helps it "draw" stuff to the invisible server
     // canvas.
     projects.projects[room].external_paths = [];
+    console.log(projects);
     db.load(room, socket);
   } else { // Project exists in memory, no need to load from database
     loadFromMemory(room, socket);
