@@ -86,6 +86,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('disconnect', function () {
     var room = allClients[socket.id]
     projects.projects[room]
+    console.log(io.sockets.adapter.rooms[room]==null);
     delete projects.projects[room]
     delete allClients[socket.id]
     console.log("Socket disconnected");
@@ -97,7 +98,7 @@ io.sockets.on('connection', function (socket) {
     if (!projects.projects[room] || !projects.projects[room].external_paths) {
       loadError(socket);
       return;
-    }
+    } 
     projects.projects[room].external_paths.push([start_x,start_y, end_x, end_y])
     db.storeProject(room);
     io.in(room).emit('draw:progress', start_x, start_y, end_x, end_y);
