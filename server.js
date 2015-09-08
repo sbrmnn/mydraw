@@ -12,6 +12,7 @@ var settings = require('./src/util/Settings.js'),
     fs = require('fs'),
     http = require('http'),
     https = require('https');
+    allClients = {};
 
 /** 
  * SSL Logic and Server bindings
@@ -29,7 +30,7 @@ if(settings.ssl){
   var server = https.createServer(options, app).listen(settings.port);
 }else{
   var app = express();
-  var server = app.listen(settings.port);
+  var server = app.listen(settings.port, settings.ip);
 }
 
 /** 
@@ -81,15 +82,18 @@ io.sockets.setMaxListeners(0);
 
 // SOCKET IO
 io.sockets.on('connection', function (socket) {
+
   socket.on('disconnect', function () {
+    var room = allClients[socket.id]
+    projects.projects[room]
+    delete projects.projects[room]
+    delete allClients[socket.id]
     console.log("Socket disconnected");
-    // TODO: We should have logic here to remove a drawing from memory as we did previously
   });
 
   // EVENT: User stops drawing something
   // Having room as a parameter is not good for secure rooms
   socket.on('draw:progress', function (room, start_x, start_y, end_x, end_y) {
-    console.log(socket);
     if (!projects.projects[room] || !projects.projects[room].external_paths) {
       loadError(socket);
       return;
@@ -99,53 +103,20 @@ io.sockets.on('connection', function (socket) {
     io.in(room).emit('draw:progress', start_x, start_y, end_x, end_y);
    });
 
-  // EVENT: User stops drawing something
-  // Having room as a parameter is not good for secure rooms
-  socket.on('draw:end', function (room, start_x, start_x, end_x, end_y) {
-    if (!projects.projects[room] || !projects.projects[room].project) {
-      loadError(socket);
-      return;
-    }
-    io.in(room).emit('draw:end',  start_x, start_x, end_x, end_y);
-   });
-
+ 
   // User joins a room
   socket.on('subscribe', function(data) {
     subscribe(socket, data);
   });
 
   // User clears canvas
-  socket.on('canvas:clear', function(room) {
+  socket.on('clear', function(room) {
     if (!projects.projects[room] || !projects.projects[room].project) {
       loadError(socket);
       return;
     }
 
-    io.in(room).emit('canvas:clear');
-  });
-
-  // User removes an item
-  socket.on('item:remove', function(room, uid, itemName) {
-     io.sockets.in(room).emit('item:remove', uid, itemName);
-  });
-
-  // User moves one or more items on their canvas - progress
-  socket.on('item:move:progress', function(room, uid, itemNames, delta) {
-    if (itemNames) {
-      io.sockets.in(room).emit('item:move', uid, itemNames, delta);
-    }
-  });
-
-  // User moves one or more items on their canvas - end
-  socket.on('item:move:end', function(room, uid, itemNames, delta) {
-    if (itemNames) {
-      io.sockets.in(room).emit('item:move', uid, itemNames, delta);
-    }
-  });
-
-  // User adds a raster image
-  socket.on('image:add', function(room, uid, data, position, name) {
-    io.sockets.in(room).emit('image:add', uid, data, position, name);
+    io.in(room).emit('clear');
   });
 
 });
@@ -157,14 +128,10 @@ function subscribe(socket, roomInput) {
   // Subscribe the client to the room
   socket.join(room);
 
-  // If the close timer is set, cancel it
-  // if (closeTimer[room]) {
-  //  clearTimeout(closeTimer[room]);
-  // }
-
+  allClients[socket.id] = room ;
+ 
 
   var project = projects.projects[room];
-
   if (!project) {
     console.log("made room");
     projects.projects[room] = {};
@@ -174,7 +141,6 @@ function subscribe(socket, roomInput) {
     // object but that just helps it "draw" stuff to the invisible server
     // canvas.
     projects.projects[room].external_paths = [];
-    console.log(projects);
     db.load(room, socket);
   } else { // Project exists in memory, no need to load from database
     loadFromMemory(room, socket);
@@ -188,16 +154,17 @@ function subscribe(socket, roomInput) {
 
 // Send current project to new client
 function loadFromMemory(room, socket) {
-  var project = projects.projects[room].project;
+  var project = projects.projects[room].external_paths;
   if (!project) { // Additional backup check, just in case
     db.load(room, socket);
     return;
+  }else{
+    socket.emit('loading:start');
+    var value = project
+    console.log("Loading from memory")
+    socket.emit('project:load', {project: value});
+    socket.emit('loading:end');
   }
-  socket.emit('loading:start');
-  var value = project.exportJSON();
-  socket.emit('project:load', {project: value});
-  socket.emit('settings', clientSettings);
-  socket.emit('loading:end');
 }
 
 function loadError(socket) {

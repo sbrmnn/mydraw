@@ -15,7 +15,6 @@ db.init(function(err){
 // Write to teh database
 exports.storeProject = function(room) {
   var project = projects.projects[room].external_paths;
-  console.log("Writing project to database");
   db.set(room, {project: project});
 }
 
@@ -28,9 +27,11 @@ function loadError(socket) {
 exports.load = function(room, socket) {
   if (projects.projects[room] && projects.projects[room].external_paths) {
     var project = projects.projects[room].external_paths;
-    db.get(room, function(err, value) {
-       projects.projects[room].external_paths = value
-       socket.emit('project:load', value);
+    db.get(room, function(err, value) { 
+       if( value != null){
+        projects.projects[room].external_paths = value["project"]
+        socket.emit('project:load', value);
+       }
     });
    } else {
     loadError(socket);
