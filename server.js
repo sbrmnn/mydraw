@@ -71,7 +71,7 @@ io.sockets.on('connection', function (socket) {
     var room = allClients[socket.id]
     projects.projects[room]
     if(io.sockets.adapter.rooms[room]==null){ // Making sure all the users have left the room 
-                                              // before deleting the project contents.
+                                             // before deleting the project contents.
       delete projects.projects[room]
     }
     delete allClients[socket.id]
@@ -132,11 +132,6 @@ function subscribe(socket, roomInput) {
   } else { // Project exists in memory, no need to load from database
     loadFromMemory(room, socket);
   }
-
-  // Broadcast to room the new user count -- currently broken
-  var rooms = socket.adapter.rooms[room]; 
-  var roomUserCount = Object.keys(rooms).length;
-  io.to(room).emit('user:connect', roomUserCount);
 }
 
 // Send current project to new client
@@ -147,9 +142,8 @@ function loadFromMemory(room, socket) {
     return;
   }else{
     socket.emit('loading:start');
-    var value = project
     console.log("Loading from memory")
-    socket.emit('project:load', {project: value});
+    socket.emit('project:load', {project: project});
     socket.emit('loading:end');
   }
 }
