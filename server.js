@@ -59,23 +59,7 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
-
-// Front-end tests
-app.get('/tests/frontend/specs_list.js', function(req, res){
-  tests.specsList(function(tests){
-    res.send("var specs_list = " + JSON.stringify(tests) + ";\n");
-  });
-});
-
-// Used for front-end tests
-app.get('/tests/frontend', function (req, res) {
-  res.redirect('/tests/frontend/');
-});
-
-// Static files IE Javascript and CSS
-app.use("/static", express.static(__dirname + '/src/static'));
-
-
+ 
 // LISTEN FOR REQUESTS
 var io = socket.listen(server);
 io.sockets.setMaxListeners(0);
@@ -86,8 +70,10 @@ io.sockets.on('connection', function (socket) {
   socket.on('disconnect', function () {
     var room = allClients[socket.id]
     projects.projects[room]
-    console.log(io.sockets.adapter.rooms[room]==null);
-    delete projects.projects[room]
+    if(io.sockets.adapter.rooms[room]==null){ // Making sure all the users have left the room 
+                                              // before deleting the project contents.
+      delete projects.projects[room]
+    }
     delete allClients[socket.id]
     console.log("Socket disconnected");
   });
