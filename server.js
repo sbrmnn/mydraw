@@ -3,7 +3,6 @@
  */
 
 var settings = require('./src/util/Settings.js'),
-    tests = require('./src/util/tests.js'),
     projects = require('./src/util/projects.js'),
     db = require('./src/util/db.js'),
     express = require("express"),
